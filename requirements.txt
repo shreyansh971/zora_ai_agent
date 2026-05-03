@@ -1,0 +1,25 @@
+# Vera: The Integrity Agent - Requirements (flexible versions)
+
+fastapi
+uvicorn[standard]
+python-dotenv
+pydantic
+
+google-generativeai
+
+chromadb
+
+requests
+beautifulsoup4
+duckduckgo-search
+arxiv
+
+sentence-transformers
+
+weasyprint
+jinja2
+
+httpx
+python-multipart
+websockets
+aiohttp

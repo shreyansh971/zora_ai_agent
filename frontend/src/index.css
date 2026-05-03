@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --vera-bg: #06040f;
+  --vera-surface: #0d0a1a;
+  --vera-border: #1e1535;
+  --vera-purple: #7c3aed;
+  --vera-purple-light: #a78bfa;
+  --vera-accent: #e879f9;
+  --vera-text: #e8e4f5;
+  --vera-muted: #6b6585;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--vera-bg);
+  color: var(--vera-text);
+  font-family: 'DM Sans', sans-serif;
+  overflow-x: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--vera-bg); }
+::-webkit-scrollbar-thumb { background: var(--vera-border); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--vera-purple); }
+
+/* Noise texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* Glow effects */
+.glow-purple {
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.3), 0 0 60px rgba(124, 58, 237, 0.1);
+}
+
+.glow-text {
+  text-shadow: 0 0 20px rgba(167, 139, 250, 0.5);
+}
+
+/* Animated gradient border */
+@keyframes borderGlow {
+  0%, 100% { border-color: rgba(124,58,237,0.4); }
+  50% { border-color: rgba(232,121,249,0.7); }
+}
+
+.animated-border {
+  animation: borderGlow 3s ease-in-out infinite;
+}
+
+/* Pulse animation */
+@keyframes pulseRing {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.8; }
+}
+
+.pulse-ring { animation: pulseRing 2s ease-in-out infinite; }
+
+/* Scanline effect */
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+/* Typing cursor */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.cursor-blink::after {
+  content: '|';
+  animation: blink 1s step-end infinite;
+  color: var(--vera-purple-light);
+}
+
+/* Status badges */
+.badge-verified { background: #052e16; color: #4ade80; border: 1px solid #16a34a; }
+.badge-hallucinated { background: #450a0a; color: #f87171; border: 1px solid #dc2626; }
+.badge-partial { background: #451a03; color: #fbbf24; border: 1px solid #d97706; }
+.badge-unverifiable { background: #111827; color: #9ca3af; border: 1px solid #374151; }
+
+/* Smooth transitions */
+* { transition: border-color 0.2s, background-color 0.2s; }
