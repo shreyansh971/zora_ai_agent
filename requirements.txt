@@ -1,24 +1,28 @@
-# Vera: The Integrity Agent - Requirements (flexible versions)
+# Zora: The Integrity Agent - Lightweight Requirements for Render Free Tier
 
+# Core
 fastapi
 uvicorn[standard]
 python-dotenv
 pydantic
 
+# AI (free)
 google-generativeai
+requests
 
+# Vector DB (lightweight - no sentence-transformers)
 chromadb
 
-requests
+# Web scraping
 beautifulsoup4
 duckduckgo-search
 arxiv
 
-sentence-transformers
-
+# PDF + templates
 weasyprint
 jinja2
 
+# Utilities
 httpx
 python-multipart
 websockets
