@@ -1,58 +1,36 @@
-# backend/main.py
-# FastAPI server — REST + WebSocket for real-time progress streaming
+# backend/main.py — Zora: The Integrity Agent
+# REST API (no WebSocket dependency for free hosting compatibility)
 
 import os
-import json
-import asyncio
 import logging
-from pathlib import Path
 from dotenv import load_dotenv
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 
 load_dotenv()
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-)
-logger = logging.getLogger("vera.api")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
+logger = logging.getLogger("zora.api")
 
 from backend.models import ResearchRequest, ZoraSession
 from backend.agents.orchestrator import run_zora_pipeline
 
 app = FastAPI(title="Zora: The Integrity Agent", version="1.0.0")
 
+# Allow all origins (Vercel, localhost, etc.)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Ensure output dirs exist
 os.makedirs("./output/receipts", exist_ok=True)
-
-# Serve receipt files
-receipts_dir = Path("./output/receipts")
-if receipts_dir.exists():
-    app.mount("/receipts", StaticFiles(directory=str(receipts_dir)), name="receipts")
-
-# Serve frontend static files (if built)
-frontend_dist = Path("./frontend/dist")
-if frontend_dist.exists():
-    app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="assets")
 
 
 @app.get("/")
 async def root():
-    # Serve frontend if built
-    index_path = frontend_dist / "index.html"
-    if index_path.exists():
-        return FileResponse(str(index_path))
-    return {"message": "Vera API is running. See /docs for API reference."}
+    return {"message": "Zora API is running", "version": "1.0.0", "docs": "/docs"}
 
 
 @app.get("/health")
@@ -60,16 +38,16 @@ async def health():
     return {"status": "ok", "version": "1.0.0"}
 
 
-@app.post("/api/research", response_model=dict)
+@app.post("/api/research")
 async def research_endpoint(request: ResearchRequest):
-    """
-    Synchronous research endpoint (no streaming).
-    Returns complete session result.
-    """
+    """Main research endpoint — runs the full Zora pipeline."""
     if not request.topic.strip():
         raise HTTPException(status_code=400, detail="Topic cannot be empty.")
 
+    logger.info(f"Research request: {request.topic[:80]}")
+
     session = await run_zora_pipeline(request)
+
     return {
         "session_id": session.session_id,
         "state": session.state,
@@ -84,20 +62,16 @@ async def research_endpoint(request: ResearchRequest):
     }
 
 
+# Keep WebSocket endpoint for local dev
 @app.websocket("/ws/research")
-async def research_websocket(websocket: WebSocket):
-    """
-    WebSocket endpoint for real-time progress streaming.
-    Client sends: {"topic": "...", "draft_text": "...", "user_id": "..."}
-    Server streams: progress updates + final result
-    """
+async def research_websocket(websocket):
+    from fastapi import WebSocket
+    from fastapi.websockets import WebSocketDisconnect
+    import json
     await websocket.accept()
-    logger.info("WebSocket connection established")
-
     try:
         data = await websocket.receive_text()
-        request_data = json.loads(data)
-        request = ResearchRequest(**request_data)
+        request = ResearchRequest(**json.loads(data))
 
         async def send_progress(update):
             await websocket.send_json({
@@ -108,10 +82,7 @@ async def research_websocket(websocket: WebSocket):
                 "data": update.data,
             })
 
-        # Run pipeline with live progress
         session = await run_zora_pipeline(request, on_progress=send_progress)
-
-        # Send final result
         await websocket.send_json({
             "type": "complete",
             "session_id": session.session_id,
@@ -125,13 +96,7 @@ async def research_websocket(websocket: WebSocket):
             "interaction_log": session.interaction_log,
             "queries": session.research_trail.queries,
         })
-
-    except WebSocketDisconnect:
-        logger.info("WebSocket disconnected by client")
-    except json.JSONDecodeError:
-        await websocket.send_json({"type": "error", "message": "Invalid JSON payload"})
     except Exception as e:
-        logger.exception(f"WebSocket error: {e}")
         try:
             await websocket.send_json({"type": "error", "message": str(e)})
         except Exception:
@@ -145,9 +110,6 @@ async def research_websocket(websocket: WebSocket):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "backend.main:app",
-        host=os.getenv("APP_HOST", "0.0.0.0"),
-        port=int(os.getenv("APP_PORT", 8000)),
-        reload=os.getenv("DEBUG", "true").lower() == "true",
-    )
+    uvicorn.run("backend.main:app", host="0.0.0.0",
+                port=int(os.getenv("PORT", 8000)),
+                reload=os.getenv("DEBUG", "true").lower() == "true")
